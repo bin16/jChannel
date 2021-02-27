@@ -30,14 +30,45 @@ func main() {
 	msgs, _ := collectAndSort(cfg.DataDIR)
 	max := len(msgs)
 
-	bot.Send(ch, "go! #redo")
+	started := false
+	if cfg.NotBefore == "" {
+		started = true
+	}
+
+	notice, _ := bot.Send(ch, "Go! #临时消息")
+	bot.Pin(notice)
 	for i, m := range msgs {
-		fmt.Printf("%.3d of %.3d, %s\n", i, max, m.ID)
+		if m.ID == cfg.NotBefore {
+			started = true
+		}
+		if !started {
+			continue
+		}
+
+		info := fmt.Sprintf("%.3d of %.3d, %s\n", i, max, m.ID)
+		log.Println(info)
+
+		jobInfo := mkMesage(i+1, len(msgs), m.ID, nil)
+		bot.Edit(notice, jobInfo, &tb.SendOptions{
+			DisableWebPagePreview: true,
+		})
+
 		err := sendMessage(bot, &m)
 		if err != nil {
+			jobInfo = mkMesage(i+1, len(msgs), m.ID, err)
+			bot.Edit(notice, jobInfo, &tb.SendOptions{
+				DisableWebPagePreview: true,
+			})
+
+			log.Printf("failed: %v\n", err)
 			time.Sleep(time.Duration(5 * 60))
 			err2 := sendMessage(bot, &m)
 			if err2 != nil {
+				jobInfo = mkMesage(i+1, len(msgs), m.ID, err2)
+				bot.Edit(notice, jobInfo, &tb.SendOptions{
+					DisableWebPagePreview: true,
+				})
+
 				log.Fatalln(err)
 			}
 		}
@@ -45,6 +76,28 @@ func main() {
 
 	fmt.Println("done")
 	return
+}
+
+func mkMesage(num, total int, id string, err error) string {
+	return fmt.Sprintf(`#临时消息 搬运中
+
+当前第（%d/%d）条 ID: %s
+
+链接：%s
+
+%s`,
+		num, total, id,
+		fmt.Sprintf("https://web.okjike.com/originalPost/%s", id),
+		optionalErrorMessage(err),
+	)
+}
+
+func optionalErrorMessage(err error) string {
+	if err != nil {
+		return fmt.Sprintf("\n遇到一个问题，正在重试：%s\n", err.Error())
+	}
+
+	return ""
 }
 
 func downloadFile(dstPath, remoteURL string) error {

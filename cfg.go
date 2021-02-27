@@ -10,6 +10,7 @@ type config struct {
 	BotToken        string `json:"botToken"`
 	ChannelUsername string `json:"channelUsername"`
 	DataDIR         string `json:"dataDir"`
+	NotBefore       string `json:"notBefore"`
 }
 
 func loadConfig(confPath string) *config {

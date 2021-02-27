@@ -27,6 +27,7 @@ func sendMessage(bot *tb.Bot, msg *message) error {
 
 		err := sendAlbumOrText(bot, msg)
 		if err != nil {
+			log.Printf("[WARN]: %s\n", err)
 			continue
 		}
 
